@@ -102,7 +102,12 @@ function getUserByEmail(email) {
 }
 
 app.get("/", (req, res) => {
-    res.send("Hello!");
+    const user = getUserById(req.session.user_id)
+    if (user) {
+        res.redirect('/url');
+    } else {
+        res.redirect('/login');
+    }
 });
 
 app.get("/urls.json", (req, res) => {
@@ -111,12 +116,16 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/urls", (req, res) => {
     const user = getUserById(req.session.user_id)
-    const userId = (user) ? user.id : undefined;
-    const templateVars = { 
-        urls: getUrlsByUserId(userId),
-        user: user
-    };
-    res.render("urls_index", templateVars);
+    if (user) {
+        const userId = (user) ? user.id : undefined;
+        const templateVars = { 
+            urls: getUrlsByUserId(userId),
+            user: user
+        };
+        res.render("urls_index", templateVars);
+    } else {
+        res.send('Need to be logged in');
+    }
 });
 
 app.post("/urls", (req, res) => {
@@ -153,17 +162,33 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-    const templateVars = { 
-        shortURL: req.params.shortURL, 
-        longURL: urlDatabase[req.params.shortURL].longURL,
-        user: getUserById(req.session.user_id)
-    };
-    res.render("urls_show", templateVars);
+    const shortURL = req.params.shortURL;
+    const url = getUrl(shortURL);
+    const user = getUserById(req.session.user_id)
+    if (!url) {
+        res.send('URL not found');
+    } else if (!user) {
+        res.send('Please login first');
+    } else if (user.id !== url.userID) {
+        res.send('This url does not belong to you')
+    } else {
+        const templateVars = { 
+            shortURL: shortURL, 
+            longURL: url.longURL,
+            user: getUserById(req.session.user_id),
+        };
+        res.render("urls_show", templateVars);
+    }
 });
 
 app.get("/u/:shortURL", (req, res) => {
-    const longURL = getUrl(req.params.shortURL).longURL;
-    res.redirect(longURL);
+    const shortURL = req.params.shortURL;
+    const url = getUrl(shortURL);
+    if (url) {
+        res.redirect(url.longURL);
+    } else {
+        res.send('URL not found');
+    }
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -207,8 +232,8 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-    req.session.user_id = null;
-    res.redirect('/urls');
+    req.session = null;
+    res.redirect('/');
 });
 
 app.get("/register", (req, res) => {
