@@ -104,7 +104,7 @@ function getUserByEmail(email) {
 app.get("/", (req, res) => {
     const user = getUserById(req.session.user_id)
     if (user) {
-        res.redirect('/url');
+        res.redirect('/urls');
     } else {
         res.redirect('/login');
     }
@@ -124,7 +124,11 @@ app.get("/urls", (req, res) => {
         };
         res.render("urls_index", templateVars);
     } else {
-        res.send('Need to be logged in');
+        const errorVars = {
+            user: user,
+            error: 'Need to be logged in'
+        }
+        res.render("error", errorVars);
     }
 });
 
@@ -166,11 +170,23 @@ app.get("/urls/:shortURL", (req, res) => {
     const url = getUrl(shortURL);
     const user = getUserById(req.session.user_id)
     if (!url) {
-        res.send('URL not found');
+        const errorVars = {
+            user: user,
+            error: 'URL not found'
+        }
+        res.render("error", errorVars);
     } else if (!user) {
-        res.send('Please login first');
+        const errorVars = {
+            user: user,
+            error: 'Please login first'
+        }
+        res.render("error", errorVars);
     } else if (user.id !== url.userID) {
-        res.send('This url does not belong to you')
+        const errorVars = {
+            user: user,
+            error: 'This url does not belong to you'
+        }
+        res.render("error", errorVars);
     } else {
         const templateVars = { 
             shortURL: shortURL, 
@@ -184,10 +200,15 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
     const shortURL = req.params.shortURL;
     const url = getUrl(shortURL);
+    const user = getUserById(req.session.user_id);
     if (url) {
         res.redirect(url.longURL);
     } else {
-        res.send('URL not found');
+        const errorVars = {
+            user: user,
+            error: 'URL not found'
+        }
+        res.render("error", errorVars);
     }
 });
 
